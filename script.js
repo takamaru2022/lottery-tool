@@ -16,6 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
         prizePart: document.getElementById('prize-part'),
     };
 
+    const prizeCounts = {
+        prize1: document.getElementById('prize1-count'),
+        prize2: document.getElementById('prize2-count'),
+        prize3: document.getElementById('prize3-count'),
+    };
+
     let participants = [];
     let remainingParticipants = [];
     let participantCount = 0;
@@ -38,11 +44,14 @@ document.addEventListener('DOMContentLoaded', () => {
     startButton.addEventListener('click', () => {
         const inputs = document.querySelectorAll('.participant-input');
         const names = Array.from(inputs).map(input => input.value.trim()).filter(name => name);
-        
-        if (names.length < 4) {
-            alert('有効な名前を持つ参加者を4名以上入力してください。');
+
+        const totalWinners = parseInt(prizeCounts.prize1.value) + parseInt(prizeCounts.prize2.value) + parseInt(prizeCounts.prize3.value);
+
+        if (names.length < totalWinners) {
+            alert(`参加者の数（${names.length}人）が当選本数の合計（${totalWinners}人）より少ないです。参加者を増やすか、当選本数を減らしてください。`);
             return;
         }
+
         participants = names;
         remainingParticipants = [...participants];
 
@@ -54,44 +63,51 @@ document.addEventListener('DOMContentLoaded', () => {
         startLottery();
     });
 
-    function startLottery() {
-        drawPrize('1等', 'prize-1', prizes.prize1.value, () => {
-            drawPrize('2等', 'prize-2', prizes.prize2.value, () => {
-                drawPrize('3等', 'prize-3', prizes.prize3.value, () => {
-                    assignParticipationPrizes(() => {
-                        rouletteArea.classList.add('hidden');
-                        resultArea.classList.remove('hidden');
-                    });
-                });
+    async function startLottery() {
+        await drawPrizesForRank('1等', 'prize-1', prizes.prize1.value, parseInt(prizeCounts.prize1.value));
+        await drawPrizesForRank('2等', 'prize-2', prizes.prize2.value, parseInt(prizeCounts.prize2.value));
+        await drawPrizesForRank('3等', 'prize-3', prizes.prize3.value, parseInt(prizeCounts.prize3.value));
+        
+        assignParticipationPrizes();
+
+        rouletteArea.classList.add('hidden');
+        resultArea.classList.remove('hidden');
+    }
+
+    function drawPrizesForRank(prizeRank, prizeClass, prizeName, count) {
+        return new Promise(async (resolve) => {
+            for (let i = 0; i < count; i++) {
+                if (remainingParticipants.length === 0) break;
+                await drawSinglePrize(prizeRank, prizeClass, prizeName);
+            }
+            resolve();
+        });
+    }
+
+    function drawSinglePrize(prizeRank, prizeClass, prizeName) {
+        return new Promise((resolve) => {
+            updateLamps();
+            runRoulette(winner => {
+                if (winner) {
+                    triggerConfetti();
+                    const li = document.createElement('li');
+                    li.textContent = `${prizeRank}: ${winner} (景品: ${prizeName})`;
+                    li.className = prizeClass;
+                    resultList.appendChild(li);
+                    remainingParticipants = remainingParticipants.filter(p => p !== winner);
+                }
+                setTimeout(resolve, 1000); // Wait a bit before next draw
             });
         });
     }
 
-    function drawPrize(prizeRank, prizeClass, prizeName, callback) {
-        updateLamps();
-        runRoulette(winner => {
-            triggerConfetti();
-            const li = document.createElement('li');
-            li.textContent = `${prizeRank}: ${winner} (景品: ${prizeName})`;
-            li.className = prizeClass;
-            resultList.appendChild(li);
-
-            remainingParticipants = remainingParticipants.filter(p => p !== winner);
-            
-            setTimeout(() => {
-                if (callback) callback();
-            }, 1000); // Wait a bit before next draw
-        });
-    }
-
-    function assignParticipationPrizes(callback) {
+    function assignParticipationPrizes() {
         remainingParticipants.forEach(participant => {
             const li = document.createElement('li');
             li.textContent = `参加賞: ${participant} (景品: ${prizes.prizePart.value})`;
             li.className = 'prize-participation';
             resultList.appendChild(li);
         });
-        if(callback) callback();
     }
 
     function updateLamps() {
@@ -107,24 +123,26 @@ document.addEventListener('DOMContentLoaded', () => {
     function runRoulette(onComplete) {
         const lamps = Array.from(nameLampsDiv.children);
         if (lamps.length === 0) {
-            if(onComplete) onComplete(null);
+            if (onComplete) onComplete(null);
             return;
         }
 
-        const duration = 5000; // 5 seconds for more drama
-        const totalRotations = 50;
+        const duration = 5000;
         const winnerIndex = Math.floor(Math.random() * lamps.length);
 
-        lamps.forEach(lamp => lamp.classList.remove('active'));
+        let startTime = null;
 
-        let currentRotation = 0;
+        function animate(currentTime) {
+            if (!startTime) startTime = currentTime;
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const easedProgress = 1 - Math.pow(1 - progress, 4); // easeOutQuart
 
-        function animate(time) {
-            const progress = time / duration;
-            const easedProgress = easeOutCubic(progress);
+            const totalLaps = 5;
+            const totalSteps = lamps.length * totalLaps + winnerIndex;
+            const currentStep = Math.floor(easedProgress * totalSteps);
+            const currentIndex = currentStep % lamps.length;
 
-            const currentIndex = Math.floor(easedProgress * totalRotations) % lamps.length;
-            
             lamps.forEach((lamp, index) => {
                 lamp.classList.toggle('active', index === currentIndex);
             });
@@ -132,18 +150,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (progress < 1) {
                 requestAnimationFrame(animate);
             } else {
-                // Ensure final winner is selected
-                lamps.forEach(lamp => lamp.classList.remove('active'));
-                lamps[winnerIndex].classList.add('active');
+                lamps.forEach((lamp, index) => lamp.classList.toggle('active', index === winnerIndex));
                 setTimeout(() => onComplete(lamps[winnerIndex].textContent), 500);
             }
         }
 
         requestAnimationFrame(animate);
-    }
-
-    function easeOutCubic(t) {
-        return (--t) * t * t + 1;
     }
 
     function triggerConfetti() {
