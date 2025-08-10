@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>わくわく抽選ツール</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=Poppins:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>わくわく抽選ツール</h1>
+
+    <div class="setup-area">
+        <h2>景品と当選本数の設定</h2>
+        <p class="description">（景品名と当選本数を自由に入力できます）</p>
+        <div class="prize-setup">
+            <div class="prize-item">
+                <label for="prize1">1等:</label>
+                <input type="text" id="prize1" value="豪華景品A">
+                <label for="prize1-count">本数:</label>
+                <input type="number" id="prize1-count" value="1" min="0">
+            </div>
+            <div class="prize-item">
+                <label for="prize2">2等:</label>
+                <input type="text" id="prize2" value="素敵な景品B">
+                <label for="prize2-count">本数:</label>
+                <input type="number" id="prize2-count" value="1" min="0">
+            </div>
+            <div class="prize-item">
+                <label for="prize3">3等:</label>
+                <input type="text" id="prize3" value="景品C">
+                <label for="prize3-count">本数:</label>
+                <input type="number" id="prize3-count" value="1" min="0">
+            </div>
+            <div class="prize-item">
+                <label for="prize-part">参加賞:</label>
+                <input type="text" id="prize-part" value="お菓子詰め合わせ">
+            </div>
+        </div>
+
+        <h2>参加者の入力</h2>
+        <div id="participant-inputs"></div>
+        <button id="add-participant-button">＋ 参加者を追加 (10名)</button>
+        <hr>
+        <button id="startButton">抽選スタート！</button>
+    </div>
+
+    <div id="roulette-area" class="hidden">
+        <h2>抽選中...</h2>
+        <div id="name-lamps"></div>
+    </div>
+
+    <div id="result-area" class="hidden">
+        <h2>抽選結果</h2>
+        <ul id="result-list"></ul>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
